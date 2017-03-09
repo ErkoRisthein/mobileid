@@ -83,14 +83,14 @@ public class MobileIDSignerTest {
 	}
 
 	@Test
-//	@Ignore
+	@Ignore
 	public void startSignFiles_getSignedFile() throws Exception {
 		List<MobileIdSignatureFile> files = Arrays.asList(
 			new MobileIdSignatureFile("test1.txt", "text/plain", "Test".getBytes()),
 			new MobileIdSignatureFile("test2.txt", "text/plain", "Test".getBytes())
 		);
 
-		MobileIdSignatureSession session = signer.startSignFiles(files, "38812022762", "5523533");
+		MobileIdSignatureSession session = signer.startSignFiles(files, "38112310010", "55555555");
 
 		byte[] signedFile = signer.getSignedFile(session);
 		assertThat(signedFile, is(notNullValue()));
