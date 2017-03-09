@@ -11,11 +11,16 @@ import javax.xml.rpc.holders.IntHolder;
 import javax.xml.rpc.holders.StringHolder;
 import java.rmi.RemoteException;
 
-import static com.codeborne.security.AuthenticationException.Code.*;
+import static com.codeborne.security.AuthenticationException.Code.OUTSTANDING_TRANSACTION;
+import static com.codeborne.security.AuthenticationException.Code.USER_AUTHENTICATED;
 import static java.lang.String.valueOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 public class MobileIDAuthenticatorTest {
@@ -42,7 +47,7 @@ public class MobileIDAuthenticatorTest {
   @Test
   public void waitsIfStatusOutstandingTransaction() throws Exception {
     mid.service = mockStatus(OUTSTANDING_TRANSACTION);
-    MobileIDSession session = new MobileIDSession(123, "1234", "Bob", "Boboff", "1234567890");
+    MobileIDSession session = new MobileIDSession(123, "1234", "Bob", "Boboff", "1234567890", "+3725555555");
     assertFalse(mid.isLoginComplete(session));
 
     mid = spy(mid);
@@ -59,7 +64,7 @@ public class MobileIDAuthenticatorTest {
   @Test
   public void loginCompleteIfStatusUserAuthenticated() throws Exception {
     mid.service = mockStatus(USER_AUTHENTICATED);
-    assertTrue(mid.isLoginComplete(new MobileIDSession(123, "1234", "Bob", "Boboff", "1234567890")));
+    assertTrue(mid.isLoginComplete(new MobileIDSession(123, "1234", "Bob", "Boboff", "1234567890", "+3725555555")));
   }
 
   private DigiDocServicePortType mockStatus(final Code status) throws RemoteException {

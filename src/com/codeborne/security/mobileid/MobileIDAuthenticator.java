@@ -146,7 +146,7 @@ public class MobileIDAuthenticator {
 
     validateOkResult(result);
 
-    return new MobileIDSession(sessCode.value, challenge.value, firstName.value, lastName.value, personalCodeHolder.value);
+    return new MobileIDSession(sessCode.value, challenge.value, firstName.value, lastName.value, personalCodeHolder.value, phone);
   }
 
   private void validateServiceUrl() {

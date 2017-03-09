@@ -29,7 +29,7 @@ public class MobileIDAuthenticatorStub extends MobileIDAuthenticator {
     else if (phone.startsWith("+37255")) {
       throw new AuthenticationException(AuthenticationException.Code.NO_AGREEMENT, "User is not a Mobile-ID client", null);
     }
-    return new MobileIDSession(parseInt(phone.replaceFirst("\\+372(.*)", "$1")), "1234", firstName, lastName, personalCode == null ? this.personalCode : personalCode);
+    return new MobileIDSession(parseInt(phone.replaceFirst("\\+372(.*)", "$1")), "1234", firstName, lastName, personalCode == null ? this.personalCode : personalCode, phone);
   }
 
   @Override
