@@ -13,6 +13,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.rmi.RemoteException;
 import java.util.Base64;
+import java.util.List;
 
 import static com.codeborne.security.AuthenticationException.Code.valueOf;
 
@@ -242,6 +243,24 @@ public class MobileIDAuthenticator {
     MobileIdSignatureSession session = startSession();
     session = createSignedDoc(session);
     session = addDataFile(session, file.name, file.mimeType, file.content);
+    session = mobileSign(session, personalCode, phone);
+    return session;
+  }
+
+  /**
+   * @param files a List of instances of MobileIdSignatureFile(fileName, mimeType, contentAsBytes)
+   * @param personalCode the personal code of the user
+   * @param phone the phone number of the user
+   * @return MobileIdSignatureSession instance that contains the session code and the challenge that should be shown to the user
+   */
+  public MobileIdSignatureSession startSignFiles(List<MobileIdSignatureFile> files, String personalCode, String phone) {
+    MobileIdSignatureSession session = startSession();
+    session = createSignedDoc(session);
+
+    for (MobileIdSignatureFile file : files) {
+      session = addDataFile(session, file.name, file.mimeType, file.content);
+    }
+
     session = mobileSign(session, personalCode, phone);
     return session;
   }

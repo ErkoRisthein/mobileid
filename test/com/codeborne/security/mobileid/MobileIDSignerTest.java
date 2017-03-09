@@ -9,7 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
@@ -71,6 +73,7 @@ public class MobileIDSignerTest {
 	}
 
 	@Test
+	@Ignore
 	public void startSign_getSignedFile() throws Exception {
 		MobileIdSignatureFile file = new MobileIdSignatureFile("test.txt", "text/plain", "Test".getBytes());
 		MobileIdSignatureSession session = signer.startSign(file, "38112310010", "55555555");
@@ -78,4 +81,20 @@ public class MobileIDSignerTest {
 		byte[] signedFile = signer.getSignedFile(session);
 		assertThat(signedFile, is(notNullValue()));
 	}
+
+	@Test
+	@Ignore
+	public void startSignFiles_getSignedFile() throws Exception {
+		List<MobileIdSignatureFile> files = Arrays.asList(
+			new MobileIdSignatureFile("test1.txt", "text/plain", "Test".getBytes()),
+			new MobileIdSignatureFile("test2.txt", "text/plain", "Test".getBytes())
+		);
+
+		MobileIdSignatureSession session = signer.startSignFiles(files, "38112310010", "55555555");
+
+		byte[] signedFile = signer.getSignedFile(session);
+		assertThat(signedFile, is(notNullValue()));
+	}
+
+
 }
