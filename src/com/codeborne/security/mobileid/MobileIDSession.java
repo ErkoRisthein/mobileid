@@ -5,6 +5,9 @@ import java.io.Serializable;
 import static java.lang.Integer.parseInt;
 
 public class MobileIDSession implements Serializable {
+
+    private static final long serialVersionUID = -7501351267187058440L;
+
     public final String firstName;
     public final String lastName;
     public final String personalCode;
