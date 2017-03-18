@@ -1,5 +1,6 @@
 package com.codeborne.security.mobileid;
 
+import com.codeborne.security.digidoc.SignedDocInfo;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -9,10 +10,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
@@ -30,71 +31,60 @@ public class MobileIDSignerTest {
 
 	@Test
 	@Ignore
-	public void startSession_createSignedDoc_addDataFile_mobileSign_getStatusInfo_getSignedDoc_closeSession() throws IOException {
+	public void mobileIdSignatureFlow() throws IOException {
 		// startSession
-		MobileIdSignatureSession session = signer.startSession();
-		assertThat(session.sessCode, is(not(0)));
+		int sessCode = signer.startSession();
+		assertThat(sessCode, is(not(0)));
 
 		// createSignedDoc
-		session = signer.createSignedDoc(session);
-		assertThat(session.signedDocInfo, is(notNullValue()));
-		assertThat(session.signedDocInfo.getFormat(), is("BDOC"));
-		assertThat(session.signedDocInfo.getVersion(), is("2.1"));
+		SignedDocInfo signedDocInfo = signer.createSignedDoc(sessCode);
+		assertThat(signedDocInfo, is(notNullValue()));
+		assertThat(signedDocInfo.getFormat(), is("BDOC"));
+		assertThat(signedDocInfo.getVersion(), is("2.1"));
 
 		// addDataFile
 		String fileContent = "Test";
 		byte[] fileContentBytes = fileContent.getBytes(StandardCharsets.UTF_8);
+		SignatureFile file = new SignatureFile("test.txt", "text/plain", fileContentBytes);
+		signedDocInfo = signer.addDataFile(sessCode, file);
 
-		session = signer.addDataFile(session, "test.txt", "text/plain", fileContentBytes);
-
-		assertThat(session.signedDocInfo.getDataFileInfo(0), is(notNullValue()));
-		assertThat(session.signedDocInfo.getDataFileInfo(0).getFilename(), is("test.txt"));
-		assertThat(session.signedDocInfo.getDataFileInfo(0).getMimeType(), is("text/plain"));
-		assertThat(session.signedDocInfo.getDataFileInfo(0).getSize(), is(4));
-		assertThat(session.signedDocInfo.getDataFileInfo(0).getContentType(), is("EMBEDDED_BASE64"));
+		assertThat(signedDocInfo.getDataFileInfo(0), is(notNullValue()));
+		assertThat(signedDocInfo.getDataFileInfo(0).getFilename(), is("test.txt"));
+		assertThat(signedDocInfo.getDataFileInfo(0).getMimeType(), is("text/plain"));
+		assertThat(signedDocInfo.getDataFileInfo(0).getSize(), is(4));
+		assertThat(signedDocInfo.getDataFileInfo(0).getContentType(), is("EMBEDDED_BASE64"));
 
 		// mobileSign
-		session = signer.mobileSign(session, "38112310010", "55555555");
+		String challenge = signer.mobileSign(sessCode, "38112310010", "55555555");
+		assertThat(challenge, is(notNullValue()));
 
 		// getStatusInfo
-		String status = signer.getStatusInfo(session);
+		String status = signer.getStatusInfo(sessCode);
 		assertThat(status, is("SIGNATURE"));
 
 		// getSignedDoc
-		session = signer.getSignedDoc(session);
-		assertThat(session.signedDocData, is(notNullValue()));
+		String signedDocData = signer.getSignedDoc(sessCode);
+		assertThat(signedDocData, is(notNullValue()));
 
-		byte[] bytes = Base64.getDecoder().decode(session.signedDocData.replaceAll("\n", "").getBytes());
+		byte[] bytes = Base64.getDecoder().decode(signedDocData.replaceAll("\n", "").getBytes());
 		Path path = Paths.get("signedTestFile.bdoc");
 		Files.write(path, bytes);
 
 		// closeSession
-		signer.closeSession(session);
+		signer.closeSession(sessCode);
 	}
 
 	@Test
 	@Ignore
-	public void startSign_getSignedFile() throws Exception {
-		MobileIdSignatureFile file = new MobileIdSignatureFile("test.txt", "text/plain", "Test".getBytes());
-		MobileIdSignatureSession session = signer.startSign(file, "38112310010", "55555555");
-
-		byte[] signedFile = signer.getSignedFile(session);
-		assertThat(signedFile, is(notNullValue()));
-	}
-
-	@Test
-	@Ignore
-	public void startSignFiles_getSignedFile() throws Exception {
-		List<MobileIdSignatureFile> files = Arrays.asList(
-			new MobileIdSignatureFile("test1.txt", "text/plain", "Test".getBytes()),
-			new MobileIdSignatureFile("test2.txt", "text/plain", "Test".getBytes())
+	public void compactMobileIdSignatureFlow() throws Exception {
+		List<SignatureFile> files = asList(
+			new SignatureFile("test1.txt", "text/plain", "Test1".getBytes()),
+			new SignatureFile("test2.txt", "text/plain", "Test2".getBytes())
 		);
 
-		MobileIdSignatureSession session = signer.startSignFiles(files, "38112310010", "55555555");
+		MobileIdSignatureSession session = signer.startSign(files, "38112310010", "55555555");
 
 		byte[] signedFile = signer.getSignedFile(session);
 		assertThat(signedFile, is(notNullValue()));
 	}
-
-
 }

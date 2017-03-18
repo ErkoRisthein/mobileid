@@ -1,43 +1,30 @@
 package com.codeborne.security.mobileid;
 
-import com.codeborne.security.digidoc.SignedDocInfo;
+import java.io.Serializable;
 
-public class MobileIdSignatureSession {
+import static java.lang.Integer.parseInt;
+
+public class MobileIdSignatureSession implements Serializable {
+
+	private static final long serialVersionUID = -7443368341567864757L;
 
 	public final int sessCode;
 
-	public final SignedDocInfo signedDocInfo;
-
 	public final String challenge;
 
-	public final String signedDocData;
-
-	public MobileIdSignatureSession(int sessCode) {
-		this(sessCode, null);
-	}
-
-	public MobileIdSignatureSession(int sessCode, SignedDocInfo signedDocInfo) {
-		this(sessCode, signedDocInfo, null);
-	}
-
-	public MobileIdSignatureSession(int sessCode, SignedDocInfo signedDocInfo, String challenge) {
-		this(sessCode, signedDocInfo, challenge, null);
-	}
-
-	public MobileIdSignatureSession(int sessCode, SignedDocInfo signedDocInfo, String challenge, String signedDocData) {
+	public MobileIdSignatureSession(int sessCode, String challenge) {
 		this.sessCode = sessCode;
-		this.signedDocInfo = signedDocInfo;
 		this.challenge = challenge;
-		this.signedDocData = signedDocData;
 	}
 
 	@Override
 	public String toString() {
-		return "MobileIdSignatureSession{" +
-				"sessCode=" + sessCode +
-				", signedDocInfo=" + signedDocInfo +
-				", challenge='" + challenge + '\'' +
-				", signedDocData='" + signedDocData + '\'' +
-				'}';
+		return sessCode + ":::" + challenge;
 	}
+
+	public static MobileIdSignatureSession fromString(String serializedMobileIdSignatureSession) {
+		String[] tokens = serializedMobileIdSignatureSession.split(":::");
+		return new MobileIdSignatureSession(parseInt(tokens[0]), tokens[1]);
+	}
+
 }

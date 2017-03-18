@@ -4,6 +4,7 @@ import com.codeborne.security.AuthenticationException;
 import com.codeborne.security.digidoc.DigiDocServicePortType;
 import com.codeborne.security.digidoc.DigiDocService_Service;
 import com.codeborne.security.digidoc.DigiDocService_ServiceLocator;
+import com.codeborne.security.digidoc.SignedDocInfo;
 import com.codeborne.security.digidoc.holders.SignedDocInfoHolder;
 
 import javax.xml.rpc.ServiceException;
@@ -234,56 +235,41 @@ public class MobileIDAuthenticator {
   }
 
   /**
-   * @param file an instance of MobileIdSignatureFile(fileName, mimeType, contentAsBytes)
+   * @param files a List of SignatureFile(fileName, mimeType, contentAsBytes) instances
    * @param personalCode the personal code of the user
    * @param phone the phone number of the user
    * @return MobileIdSignatureSession instance that contains the session code and the challenge that should be shown to the user
    */
-  public MobileIdSignatureSession startSign(MobileIdSignatureFile file, String personalCode, String phone) {
-    MobileIdSignatureSession session = startSession();
-    session = createSignedDoc(session);
-    session = addDataFile(session, file.name, file.mimeType, file.content);
-    session = mobileSign(session, personalCode, phone);
-    return session;
+  public MobileIdSignatureSession startSign(List<SignatureFile> files, String personalCode, String phone) {
+    final int sessCode = startSession();
+    createSignedDoc(sessCode);
+    files.forEach(file -> addDataFile(sessCode, file));
+    String challenge = mobileSign(sessCode, personalCode, phone);
+    return new MobileIdSignatureSession(sessCode, challenge);
   }
 
   /**
-   * @param files a List of instances of MobileIdSignatureFile(fileName, mimeType, contentAsBytes)
-   * @param personalCode the personal code of the user
-   * @param phone the phone number of the user
-   * @return MobileIdSignatureSession instance that contains the session code and the challenge that should be shown to the user
-   */
-  public MobileIdSignatureSession startSignFiles(List<MobileIdSignatureFile> files, String personalCode, String phone) {
-    MobileIdSignatureSession session = startSession();
-    session = createSignedDoc(session);
-
-    for (MobileIdSignatureFile file : files) {
-      session = addDataFile(session, file.name, file.mimeType, file.content);
-    }
-
-    session = mobileSign(session, personalCode, phone);
-    return session;
-  }
-
-  /**
-   * @param session previously returned by {@link #startSign}
+   * @param session MobileIdSignatureSession previously returned by {@link #startSign(List, String, String)}
    * @return byte array of the bdoc file content or null if the signing process is not finished yet
    */
   public byte[] getSignedFile(MobileIdSignatureSession session) {
-    String status = getStatusInfo(session);
+    String status = getStatusInfo(session.sessCode);
     if ("OUTSTANDING_TRANSACTION".equals(status)) {
       return null;
     } else if ("SIGNATURE".equals(status)) {
-      session = getSignedDoc(session);
-      byte[] signedFile = Base64.getDecoder().decode(session.signedDocData.replaceAll("\n", "").getBytes());
-      closeSession(session);
-      return signedFile;
+      String signedDoc = getSignedDoc(session.sessCode);
+      closeSession(session.sessCode);
+      return toBytes(signedDoc);
     } else {
       throw new AuthenticationException(valueOf(status));
     }
   }
 
-  MobileIdSignatureSession startSession() {
+  private byte[] toBytes(String base64) {
+    return Base64.getDecoder().decode(base64.replaceAll("\n", "").getBytes());
+  }
+
+  int startSession() {
     validateServiceUrl();
 
     IntHolder sessCode = new IntHolder();
@@ -298,45 +284,45 @@ public class MobileIDAuthenticator {
 
     validateOkResult(result);
 
-    return new MobileIdSignatureSession(sessCode.value);
+    return sessCode.value;
   }
 
-  MobileIdSignatureSession createSignedDoc(MobileIdSignatureSession session) {
+  SignedDocInfo createSignedDoc(int sessCode) {
     validateServiceUrl();
 
     StringHolder result = new StringHolder();
     SignedDocInfoHolder signedDocInfo = new SignedDocInfoHolder();
 
     try {
-      service.createSignedDoc(session.sessCode, "BDOC", "2.1", result, signedDocInfo);
+      service.createSignedDoc(sessCode, "BDOC", "2.1", result, signedDocInfo);
     } catch (RemoteException e) {
       throw new AuthenticationException(e);
     }
 
     validateOkResult(result);
 
-    return new MobileIdSignatureSession(session.sessCode, signedDocInfo.value);
+    return signedDocInfo.value;
   }
 
-  MobileIdSignatureSession addDataFile(MobileIdSignatureSession session, String fileName, String mimeType, byte[] fileContent) {
+  SignedDocInfo addDataFile(int sessCode, SignatureFile file) {
     validateServiceUrl();
 
     StringHolder result = new StringHolder();
     SignedDocInfoHolder signedDocInfo = new SignedDocInfoHolder();
-    String base64FileContent =  new String(Base64.getEncoder().encode(fileContent));
+    String base64FileContent =  new String(Base64.getEncoder().encode(file.content));
 
     try {
-      service.addDataFile(session.sessCode, fileName, mimeType, "EMBEDDED_BASE64", fileContent.length, null, null, base64FileContent, result, signedDocInfo);
+      service.addDataFile(sessCode, file.name, file.mimeType, "EMBEDDED_BASE64", file.content.length, null, null, base64FileContent, result, signedDocInfo);
     } catch (RemoteException e) {
       throw new AuthenticationException(e);
     }
 
     validateOkResult(result);
 
-    return new MobileIdSignatureSession(session.sessCode, signedDocInfo.value);
+    return signedDocInfo.value;
   }
 
-  MobileIdSignatureSession mobileSign(MobileIdSignatureSession session, String personalCode, String phone) {
+  String mobileSign(int sessCode, String personalCode, String phone) {
     validateServiceUrl();
 
     phone = cleanPhone(phone);
@@ -346,25 +332,24 @@ public class MobileIDAuthenticator {
     StringHolder challenge = new StringHolder();
 
     try {
-      service.mobileSign(session.sessCode, personalCode, country, phone, serviceName, null, language, null, null, null, null, null, null, messagingMode, 0, true, true, result, statusCode, challenge);
+      service.mobileSign(sessCode, personalCode, country, phone, serviceName, null, language, null, null, null, null, null, null, messagingMode, 0, true, true, result, statusCode, challenge);
     } catch (RemoteException e) {
       throw new AuthenticationException(e);
     }
 
     validateOkResult(result);
 
-    return new MobileIdSignatureSession(session.sessCode, session.signedDocInfo, challenge.value);
+    return challenge.value;
   }
 
-  String getStatusInfo(MobileIdSignatureSession session) {
+  String getStatusInfo(int sessCode) {
     validateServiceUrl();
 
     StringHolder result = new StringHolder();
     StringHolder statusCode = new StringHolder();
-    SignedDocInfoHolder signedDocInfo = new SignedDocInfoHolder();
 
     try {
-      service.getStatusInfo(session.sessCode, true, false, result, statusCode, signedDocInfo);
+      service.getStatusInfo(sessCode, true, false, result, statusCode, new SignedDocInfoHolder());
     } catch (RemoteException e) {
       throw new AuthenticationException(e);
     }
@@ -374,35 +359,34 @@ public class MobileIDAuthenticator {
     return statusCode.value;
   }
 
-  MobileIdSignatureSession getSignedDoc(MobileIdSignatureSession session) {
+  String getSignedDoc(int sessCode) {
     validateServiceUrl();
 
     StringHolder result = new StringHolder();
     StringHolder signedDocData = new StringHolder();
 
     try {
-      service.getSignedDoc(session.sessCode, result, signedDocData);
+      service.getSignedDoc(sessCode, result, signedDocData);
     } catch (RemoteException e) {
       throw new AuthenticationException(e);
     }
 
     validateOkResult(result);
 
-    return new MobileIdSignatureSession(session.sessCode, session.signedDocInfo, session.challenge, signedDocData.value);
+    return signedDocData.value;
   }
 
-  void closeSession(MobileIdSignatureSession session) {
+  void closeSession(int sessCode) {
     validateServiceUrl();
 
     try {
-      service.closeSession(session.sessCode);
+      service.closeSession(sessCode);
     } catch (RemoteException e) {
       throw new AuthenticationException(e);
     }
   }
 
   /**
-   *
    * @param certificate Certificate to be checked for validity, in Base64 format. May include
    *                    "---BEGIN CERTIFICATE---" and "---END CERTIFICATE---" lines (according to PEM format)
    * @return CheckCertificateResponse that contains the firstName, lastName and personalCode
@@ -426,5 +410,69 @@ public class MobileIDAuthenticator {
     validateGoodResult(result);
 
     return new CheckCertificateResponse(firstName.value, lastName.value, personalCode.value);
+  }
+
+  /**
+   * @param files a List of SignatureFile(fileName, mimeType, contentAsBytes) instances
+   * @param signingCertificate the PIN2 certificate that is used for digital signature
+   * @return IdCardSignatureSession instance that contains the session code, signatureId
+   * and the hash that has to be signed by the client
+   */
+  public IdCardSignatureSession startSign(List<SignatureFile> files, String signingCertificate) {
+    final int sessCode = startSession();
+    createSignedDoc(sessCode);
+    files.forEach(file -> addDataFile(sessCode, file));
+
+    return prepareSignature(sessCode, signingCertificate);
+  }
+
+  /**
+   * @param session IdCardSignatureSession previously returned by {@link #startSign(List, String)}
+   * @param signedHash the hash that was signed by the client using PIN2
+   * @return byte array of the bdoc file content
+   */
+  public byte[] getSignedFile(IdCardSignatureSession session, String signedHash) {
+    finalizeSignature(session, signedHash);
+    String signedDoc = getSignedDoc(session.sessCode);
+    closeSession(session.sessCode);
+    return toBytes(signedDoc);
+  }
+
+  IdCardSignatureSession prepareSignature(int sessCode, String signingCertificate) {
+    validateServiceUrl();
+
+    StringHolder result = new StringHolder();
+    StringHolder signatureId = new StringHolder();
+    StringHolder hash = new StringHolder();
+
+    try {
+      service.prepareSignature(sessCode, signingCertificate, null, null, null, null, null, null, null,
+        result, signatureId, hash);
+    }
+    catch (RemoteException e) {
+      throw new AuthenticationException(e);
+    }
+
+    validateOkResult(result);
+
+    return new IdCardSignatureSession(sessCode, signatureId.value, hash.value);
+  }
+
+  SignedDocInfo finalizeSignature(IdCardSignatureSession session, String signedHash) {
+    validateServiceUrl();
+
+    StringHolder result = new StringHolder();
+    SignedDocInfoHolder signedDocInfo = new SignedDocInfoHolder();
+
+    try {
+      service.finalizeSignature(session.sessCode, session.signatureId, signedHash, result, signedDocInfo);
+    }
+    catch (RemoteException e) {
+      throw new AuthenticationException(e);
+    }
+
+    validateOkResult(result);
+
+    return signedDocInfo.value;
   }
 }
