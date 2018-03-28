@@ -11,23 +11,23 @@ import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
  * You can use the following test phone numbers:
  * https://www.id.ee/?id=36373
  */
-public class HelloMobileID {
+public class HelloMobileIDByPersonalCode {
   private static final String TEST_DIGIDOC_SERVICE_URL = "https://tsp.demo.sk.ee/";
   private MobileIDAuthenticator mid;
   private JFrame frame;
-  private JTextField phone;
+  private JTextField personalCode;
   private JLabel message;
 
   public static void main(String[] args) {
     System.setProperty("javax.net.ssl.trustStore", "test/keystore.jks");
-    HelloMobileID app = new HelloMobileID();
+    HelloMobileIDByPersonalCode app = new HelloMobileIDByPersonalCode();
     app.mid = new MobileIDAuthenticator(TEST_DIGIDOC_SERVICE_URL);
     app.create();
   }
 
-  private void login(String phoneNumber) {
+  private void login(String personalCode) {
     try {
-      final MobileIDSession mobileIDSession = mid.startLogin(phoneNumber);
+      final MobileIDSession mobileIDSession = mid.startLogin(personalCode, "EE");
       showMessage("<br>Challenge: " + mobileIDSession.challenge + "<br>You will get SMS in few seconds.<br>Please accept it to login.<br>");
 
       mid.waitForLogin(mobileIDSession);
@@ -43,7 +43,7 @@ public class HelloMobileID {
 
   private void showMessage(final String message) {
     SwingUtilities.invokeLater(() -> {
-      HelloMobileID.this.message.setText("<html>" + message + "</html>");
+      HelloMobileIDByPersonalCode.this.message.setText("<html>" + message + "</html>");
       frame.pack();
     });
   }
@@ -63,16 +63,16 @@ public class HelloMobileID {
     JButton button = new JButton("Login with MobileID");
     button.addActionListener(e -> new Thread(() -> {
       showMessage("<br><br>Connecting to MobileID server...<br><br><br>");
-      login(phone.getText());
+      login(personalCode.getText());
     }).start());
 
-    message = new JLabel("<html><br><br>Enter your phone<br><br><br></html>");
-    phone = new JTextField("+372", 30);
-    phone.setMaximumSize(new Dimension(50, 20));
+    message = new JLabel("<html><br><br>Enter your personal code<br><br><br></html>");
+    personalCode = new JTextField("", 30);
+    personalCode.setMaximumSize(new Dimension(50, 20));
 
     JPanel panel = new JPanel(new FlowLayout());
     panel.add(message);
-    panel.add(phone);
+    panel.add(personalCode);
     panel.add(button);
     return panel;
   }

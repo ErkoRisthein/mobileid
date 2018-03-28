@@ -157,8 +157,10 @@ public class MobileIDAuthenticator {
   }
 
   private String cleanPhone(String phone) {
-    if (phone.startsWith("+")) phone = phone.substring(1);
-    if (!phone.startsWith("372")) phone = "372" + phone;
+    if (phone != null) {
+      if (phone.startsWith("+")) phone = phone.substring(1);
+      if (!phone.startsWith("372")) phone = "372" + phone;
+    }
     return phone;
   }
 
