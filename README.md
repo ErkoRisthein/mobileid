@@ -21,6 +21,7 @@ You can also use Maven/Ivy/Gradle/SBT or your favorite dependency manager that c
 
   [ErkoRisthein/mobileid](https://jitpack.io/#ErkoRisthein/mobileid) 
   
+  [![Build Status](https://travis-ci.com/ErkoRisthein/mobileid.svg?branch=master)](https://travis-ci.com/ErkoRisthein/mobileid)
   [![](https://jitpack.io/v/ErkoRisthein/mobileid.svg)](https://jitpack.io/#ErkoRisthein/mobileid)
 
 Login Usage
