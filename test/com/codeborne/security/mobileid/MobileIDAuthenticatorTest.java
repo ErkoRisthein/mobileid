@@ -59,13 +59,20 @@ public class MobileIDAuthenticatorTest {
   }
 
   @Test
-  public void removesPlusFromPhoneNumber() {
-    assertThat(mid.normalizePhoneNumber("+37255667788"), equalTo("37255667788"));
-
+  public void normalizesEstonianAndLithuanianPhoneNumbers() {
     assertThat(mid.normalizePhoneNumber(null), nullValue());
     assertThat(mid.normalizePhoneNumber(""), equalTo(""));
+    assertThat(mid.normalizePhoneNumber("+37255667788"), equalTo("37255667788"));
     assertThat(mid.normalizePhoneNumber("37255667788"), equalTo("37255667788"));
-    assertThat(mid.normalizePhoneNumber("55667788"), equalTo("55667788"));
+    assertThat(mid.normalizePhoneNumber("5xxxxxx"), equalTo("3725xxxxxx"));
+    assertThat(mid.normalizePhoneNumber("5xxxxxxx"), equalTo("3725xxxxxxx"));
+    assertThat(mid.normalizePhoneNumber("81xxxxxx"), equalTo("37281xxxxxx"));
+    assertThat(mid.normalizePhoneNumber("82xxxxxx"), equalTo("37282xxxxxx"));
+    assertThat(mid.normalizePhoneNumber("83xxxxxx"), equalTo("37283xxxxxx"));
+    assertThat(mid.normalizePhoneNumber("84xxxxxx"), equalTo("37284xxxxxx"));
+    assertThat(mid.normalizePhoneNumber("870xxxxxxxxx"), equalTo("372870xxxxxxxxx"));
+    assertThat(mid.normalizePhoneNumber("871xxxxxxxxx"), equalTo("372871xxxxxxxxx"));
+    assertThat(mid.normalizePhoneNumber("86xxxxxxx"), equalTo("37086xxxxxxx"));
   }
 
   @Test

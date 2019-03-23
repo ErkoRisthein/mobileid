@@ -15,6 +15,7 @@ import java.net.URL;
 import java.rmi.RemoteException;
 import java.util.Base64;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static com.codeborne.security.AuthenticationException.Code.valueOf;
 
@@ -155,7 +156,26 @@ public class MobileIDAuthenticator {
   }
 
   String normalizePhoneNumber(String phone) {
-    return phone != null && phone.startsWith("+") ? phone.substring(1) : phone;
+    if (phone != null) {
+      if (phone.startsWith("+"))
+        phone = phone.substring(1);
+      if (isLithuanian(phone)) {
+        return "370" + phone;
+      } else if (isEstonian(phone)) {
+        return "372" + phone;
+      }
+    }
+    return phone;
+  }
+
+  private boolean isEstonian(String phone) {
+    // https://en.wikipedia.org/wiki/Telephone_numbers_in_Estonia
+    return Stream.of("5", "81", "82", "83", "84", "870", "871").anyMatch(phone::startsWith);
+  }
+
+  private boolean isLithuanian(String phone) {
+    // https://en.wikipedia.org/wiki/Telephone_numbers_in_Lithuania
+    return phone.startsWith("86");
   }
 
   private void validateOkResult(StringHolder result) {

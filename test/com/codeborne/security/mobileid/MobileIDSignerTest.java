@@ -5,7 +5,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,8 +29,8 @@ public class MobileIDSignerTest {
 	}
 
 	@Test
-	@Ignore
-	public void mobileIdSignatureFlow() throws IOException {
+    @Ignore
+    public void mobileIdSignatureFlow() throws Exception {
 		// startSession
 		int sessCode = signer.startSession();
 		assertThat(sessCode, is(not(0)));
@@ -59,6 +58,7 @@ public class MobileIDSignerTest {
 		assertThat(challenge, is(notNullValue()));
 
 		// getStatusInfo
+		// set a breakpoint here and resume after typing in the PIN2 on your phone
 		String status = signer.getStatusInfo(sessCode);
 		assertThat(status, is("SIGNATURE"));
 
@@ -76,7 +76,7 @@ public class MobileIDSignerTest {
 
 	@Test
 	@Ignore
-	public void compactMobileIdSignatureFlow() throws Exception {
+	public void compactMobileIdSignatureFlow() {
 		List<SignatureFile> files = asList(
 			new SignatureFile("test1.txt", "text/plain", "Test1".getBytes()),
 			new SignatureFile("test2.txt", "text/plain", "Test2".getBytes())
@@ -84,6 +84,7 @@ public class MobileIDSignerTest {
 
 		MobileIdSignatureSession session = signer.startSign(files, "38112310010", "55555555");
 
+		// set a breakpoint here and resume after typing in the PIN2 on your phone
 		byte[] signedFile = signer.getSignedFile(session);
 		assertThat(signedFile, is(notNullValue()));
 	}
